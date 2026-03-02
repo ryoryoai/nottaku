@@ -2,7 +2,6 @@
 
 import { useState, use } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase"
 import { Header } from "@/components/layout/header"
 import { PhotoUpload } from "@/components/photo-upload"
 import { Button } from "@/components/ui/button"
@@ -10,13 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import Image from "next/image"
 
 type PendingPhoto = {
-  storage_path: string
-  url: string
+  dataUrl: string
   photo_type: "before" | "after"
-  caption: string
 }
 
 export default function NewLessonPage({
@@ -26,61 +22,74 @@ export default function NewLessonPage({
 }) {
   const { id: studentId } = use(params)
   const router = useRouter()
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [lessonId] = useState(() => crypto.randomUUID())
+  const [saved, setSaved] = useState(false)
   const [photos, setPhotos] = useState<PendingPhoto[]>([])
 
-  const handlePhotoUpload = (
-    photo: { storage_path: string; url: string },
-    type: "before" | "after"
-  ) => {
-    setPhotos((prev) => [
-      ...prev,
-      { ...photo, photo_type: type, caption: "" },
-    ])
+  const handlePhotoUpload = (dataUrl: string, type: "before" | "after") => {
+    setPhotos((prev) => [...prev, { dataUrl, photo_type: type }])
+  }
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
-
-    const formData = new FormData(e.currentTarget)
-
-    const { error: lessonError } = await supabase.from("lessons").insert({
-      id: lessonId,
-      student_id: studentId,
-      lesson_date: formData.get("lesson_date") as string,
-      lesson_number: formData.get("lesson_number")
-        ? Number(formData.get("lesson_number"))
-        : null,
-      topic: (formData.get("topic") as string) || null,
-      coach_note: (formData.get("coach_note") as string) || null,
-      homework: (formData.get("homework") as string) || null,
-    })
-
-    if (lessonError) {
-      alert("レッスン登録に失敗しました: " + lessonError.message)
-      setLoading(false)
-      return
-    }
-
-    if (photos.length > 0) {
-      const photoRecords = photos.map((p, i) => ({
-        lesson_id: lessonId,
-        photo_type: p.photo_type,
-        storage_path: p.storage_path,
-        display_order: i,
-        caption: p.caption || null,
-      }))
-
-      await supabase.from("lesson_photos").insert(photoRecords)
-    }
-
-    router.push(`/students/${studentId}/lessons/${lessonId}`)
+    // モックモード: DB保存をスキップ、写真プレビューのみ
+    setSaved(true)
+    setLoading(false)
   }
 
   const today = new Date().toISOString().split("T")[0]
+  const beforePhotos = photos.filter((p) => p.photo_type === "before")
+  const afterPhotos = photos.filter((p) => p.photo_type === "after")
+
+  if (saved) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <Header />
+        <main className="mx-auto max-w-2xl px-4 py-6">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <div className="mb-4 text-4xl">&#10003;</div>
+              <h2 className="mb-2 text-xl font-bold">レッスンを記録しました</h2>
+              <p className="mb-6 text-sm text-muted-foreground">
+                写真{photos.length}枚が記録されました
+              </p>
+              {photos.length > 0 && (
+                <div className="mb-6 grid grid-cols-2 gap-3">
+                  {photos.map((p, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-md border">
+                        <img
+                          src={p.dataUrl}
+                          alt={`${p.photo_type} ${i + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground text-center uppercase">
+                        {p.photo_type}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex justify-center gap-3">
+                <Button onClick={() => { setSaved(false); setPhotos([]) }}>
+                  続けて記録
+                </Button>
+                <Button variant="outline" onClick={() => router.push(`/students/${studentId}`)}>
+                  生徒詳細に戻る
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -148,60 +157,82 @@ export default function NewLessonPage({
             <CardHeader>
               <CardTitle>写真</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+            <CardContent>
+              <div className="grid gap-6 sm:grid-cols-2">
                 <div>
-                  <p className="mb-2 text-sm font-medium">Before</p>
-                  <PhotoUpload
-                    studentId={studentId}
-                    lessonId={lessonId}
-                    photoType="before"
-                    onUpload={(p) => handlePhotoUpload(p, "before")}
-                  />
-                  <div className="mt-2 space-y-2">
-                    {photos
-                      .filter((p) => p.photo_type === "before")
-                      .map((p, i) => (
-                        <div
-                          key={p.storage_path}
-                          className="relative aspect-[4/3] overflow-hidden rounded-md border"
-                        >
-                          <Image
-                            src={p.url}
-                            alt={`Before ${i + 1}`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 640px) 100vw, 50vw"
-                          />
-                        </div>
-                      ))}
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-semibold">Before</p>
+                    <PhotoUpload
+                      photoType="before"
+                      onUpload={(url) => handlePhotoUpload(url, "before")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    {beforePhotos.length > 0 ? (
+                      beforePhotos.map((p, i) => {
+                        const globalIdx = photos.indexOf(p)
+                        return (
+                          <div key={globalIdx} className="group relative">
+                            <div className="relative aspect-[4/3] overflow-hidden rounded-md border">
+                              <img
+                                src={p.dataUrl}
+                                alt={`Before ${i + 1}`}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePhoto(globalIdx)}
+                              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs text-white shadow"
+                            >
+                              x
+                            </button>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="flex aspect-[4/3] items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                        練習前の写真を撮影
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
-                  <p className="mb-2 text-sm font-medium">After</p>
-                  <PhotoUpload
-                    studentId={studentId}
-                    lessonId={lessonId}
-                    photoType="after"
-                    onUpload={(p) => handlePhotoUpload(p, "after")}
-                  />
-                  <div className="mt-2 space-y-2">
-                    {photos
-                      .filter((p) => p.photo_type === "after")
-                      .map((p, i) => (
-                        <div
-                          key={p.storage_path}
-                          className="relative aspect-[4/3] overflow-hidden rounded-md border"
-                        >
-                          <Image
-                            src={p.url}
-                            alt={`After ${i + 1}`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 640px) 100vw, 50vw"
-                          />
-                        </div>
-                      ))}
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-semibold">After</p>
+                    <PhotoUpload
+                      photoType="after"
+                      onUpload={(url) => handlePhotoUpload(url, "after")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    {afterPhotos.length > 0 ? (
+                      afterPhotos.map((p, i) => {
+                        const globalIdx = photos.indexOf(p)
+                        return (
+                          <div key={globalIdx} className="group relative">
+                            <div className="relative aspect-[4/3] overflow-hidden rounded-md border">
+                              <img
+                                src={p.dataUrl}
+                                alt={`After ${i + 1}`}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePhoto(globalIdx)}
+                              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs text-white shadow"
+                            >
+                              x
+                            </button>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="flex aspect-[4/3] items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                        練習後の写真を撮影
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
