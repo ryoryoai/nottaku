@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "updatedAt": "2026-03-02T15:06:17.762Z",
+  "skills": {},
+  "commands": {
+    "nanobanana": {
+      "count": 1,
+      "lastUsed": "2026-03-02T14:57:13.530Z"
+    }
+  },
+  "agents": {},
+  "hooks": {
+    "session-init": {
+      "triggered": 1,
+      "blocked": 0,
+      "lastTriggered": "2026-03-02T14:23:38.917Z"
+    },
+    "pretooluse-guard": {
+      "triggered": 4,
+      "blocked": 4,
+      "lastTriggered": "2026-03-02T15:06:17.761Z"
+    }
+  }
+}

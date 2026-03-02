@@ -1,13 +1,12 @@
 "use client"
 
-import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function LoginPage() {
-  const supabase = createClient()
-
   const handleGoogleLogin = async () => {
+    const { createClient } = await import("@/lib/supabase")
+    const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
