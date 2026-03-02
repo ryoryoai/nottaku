@@ -70,30 +70,30 @@ export default async function StudentsPage({
 
         <div className="space-y-2">
           {students.map((student) => (
-            <Link key={student.id} href={`/students/${student.id}`}>
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex items-center justify-between py-4">
-                  <div>
-                    <p className="font-medium">{student.name}</p>
-                    {student.name_kana && (
-                      <p className="text-xs text-muted-foreground">
-                        {student.name_kana}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {student.lesson_day && (
-                      <span className="text-sm text-muted-foreground">
-                        {student.lesson_day}
-                      </span>
-                    )}
-                    <Badge variant={statusVariant(student.status)}>
-                      {statusLabels[student.status] || student.status}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <Card key={student.id} className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between py-4">
+                <Link href={`/students/${student.id}`} className="flex-1 min-w-0">
+                  <p className="font-medium">{student.name}</p>
+                  {student.name_kana && (
+                    <p className="text-xs text-muted-foreground">
+                      {student.name_kana}
+                    </p>
+                  )}
+                </Link>
+                <div className="flex items-center gap-2 ml-3">
+                  {student.status === "active" && (
+                    <Button size="sm" asChild>
+                      <Link href={`/students/${student.id}/lessons/new`}>
+                        記録
+                      </Link>
+                    </Button>
+                  )}
+                  <Badge variant={statusVariant(student.status)}>
+                    {statusLabels[student.status] || student.status}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </main>

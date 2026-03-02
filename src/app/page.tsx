@@ -77,9 +77,9 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>生徒一覧</CardTitle>
+              <CardTitle>レッスン記録</CardTitle>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/students/new">新規登録</Link>
+                <Link href="/students">生徒一覧</Link>
               </Button>
             </CardHeader>
             <CardContent>
@@ -87,7 +87,7 @@ export default function DashboardPage() {
                 {students.map((student) => (
                   <Link
                     key={student.id}
-                    href={`/students/${student.id}`}
+                    href={`/students/${student.id}/lessons/new`}
                     className="flex items-center justify-between rounded-md border p-3 transition-colors hover:bg-muted"
                   >
                     <div>
@@ -98,9 +98,9 @@ export default function DashboardPage() {
                         </p>
                       )}
                     </div>
-                    {student.lesson_day && (
-                      <Badge variant="outline">{student.lesson_day}</Badge>
-                    )}
+                    <Button size="sm" variant="default" asChild>
+                      <span>記録する</span>
+                    </Button>
                   </Link>
                 ))}
               </div>
